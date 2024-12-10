@@ -56,3 +56,21 @@ JOIN
 # Fetch data
 df = pd.read_sql(query, engine)
 print(df.head())
+# Convert order_created_at to datetime
+df['order_created_at'] = pd.to_datetime(df['order_created_at'])
+
+# Temporal features
+df['day_of_week'] = df['order_created_at'].dt.dayofweek
+df['week_of_year'] = df['order_created_at'].dt.isocalendar().week
+df['month'] = df['order_created_at'].dt.month
+
+# Aggregate sales data to weekly level
+weekly_sales = df.groupby(['product_id', 'week_of_year']).agg({
+    'total_amount': 'sum',
+    'stock': 'mean',
+    'price': 'mean',
+    'rating': 'mean'
+}).reset_index()
+
+# Add target column: Label products likely to sell out
+weekly_sales['likely_to_sell_out'] = (weekly_sales['stock'] <= 10).astype(int)
