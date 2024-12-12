@@ -11,7 +11,7 @@ WITH UserRevenue AS (
         groups g ON gc.group_id = g.id
     WHERE 
         o.created_at >= NOW() - INTERVAL '60 days' 
-        AND o.status = 'COMPLETED' -- Make sure this condition reflects your actual status values
+        AND o.status = 'COMPLETED' 
     GROUP BY 
         gc.user_id
 ),
@@ -38,13 +38,17 @@ UserCategories AS (
 )
 SELECT 
     u.user_id,
+	usr.name,
     u.total_revenue,
     u.group_count,
     uc.categories
+    
 FROM 
     UserRevenue u
 LEFT JOIN 
     UserCategories uc ON u.user_id = uc.user_id
+JOIN 
+    users usr ON u.user_id = usr.id
 ORDER BY 
     u.total_revenue DESC
 LIMIT 10;
