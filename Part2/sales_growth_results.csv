@@ -1,1 +1,5 @@
-Category Name,Current Sales,Previous Sales,Growth Percentage
+Category ID,Category Name,Current Sales,Previous Sales,Growth Percentage
+8ee74e3f-5998-4ec8-a038-4896c2234951,Cloth & Fashion,29614.00,272837.00,-89.14590029944618948300
+d24dd74f-bb40-49bc-a19c-f9e90d77f4ea,Dairy,5957.00,,
+9a00a819-d1f5-49a3-85b6-b1d9a97ef9ed,Packed Food & Drink,60394.75,5491.00,999.8861773811691900
+af95ccc0-6ddb-4b10-82b2-4de8dabfcc46,Vegetable,144600.00,283230.00,-48.94608621968011863200

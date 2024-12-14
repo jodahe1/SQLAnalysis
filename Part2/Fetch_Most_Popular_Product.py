@@ -1,104 +1,109 @@
 import psycopg2
-from datetime import datetime, timedelta
 import csv
 
 
-def calculate_sales_growth(db_params):
+def calculate_sales_growth_with_query(db_params):
     # Connect to the PostgreSQL database
     conn = psycopg2.connect(**db_params)
     cursor = conn.cursor()
 
-    # Determine the date ranges for the last 90 days and the previous 90 days
-    today = datetime.now()
-    # Start of the last 90 days
-    current_start_date = today - timedelta(days=90)
-    current_end_date = today  # Today
-    previous_start_date = current_start_date - \
-        timedelta(days=90)  # Start of the previous 90 days
-    previous_end_date = current_start_date  # End of the previous 90 days
+    # Define the SQL query using the provided query
+    sales_growth_query = """
+    WITH sales_data AS (
+        SELECT 
+            c.id AS category_id,
+            c.name AS category_name,
+            SUM(o.total_amount) AS total_sales,
+            'Current Period' AS period
+        FROM 
+            public.groups_carts gc
+        JOIN 
+            public.orders o 
+            ON gc.id = o.groups_carts_id
+        JOIN 
+            public.group_cart_variations gcv
+            ON gc.id = gcv.group_cart_id
+        JOIN 
+            public.product_variations pv
+            ON gcv.product_variation_id = pv.id
+        JOIN 
+            public.products p
+            ON pv.product_id = p.id
+        JOIN 
+            public.product_names pn
+            ON p.name_id = pn.id
+        JOIN 
+            public.categories c
+            ON pn.category_id = c.id
+        WHERE 
+            o.created_at BETWEEN '2024-09-14 17:52:36.368747' AND '2024-12-13 17:52:36.368747'
+        GROUP BY 
+            c.id, c.name
 
-    # Debugging: print the date ranges
-    print(f"Current period: {current_start_date} to {current_end_date}")
-    print(f"Previous period: {previous_start_date} to {previous_end_date}")
+        UNION ALL
 
-    # SQL query to fetch sales data for the last 90 days
-    sales_query_current = """
+        SELECT 
+            c.id AS category_id,
+            c.name AS category_name,
+            SUM(o.total_amount) AS total_sales,
+            'Previous Period' AS period
+        FROM 
+            public.groups_carts gc
+        JOIN 
+            public.orders o 
+            ON gc.id = o.groups_carts_id
+        JOIN 
+            public.group_cart_variations gcv
+            ON gc.id = gcv.group_cart_id
+        JOIN 
+            public.product_variations pv
+            ON gcv.product_variation_id = pv.id
+        JOIN 
+            public.products p
+            ON pv.product_id = p.id
+        JOIN 
+            public.product_names pn
+            ON p.name_id = pn.id
+        JOIN 
+            public.categories c
+            ON pn.category_id = c.id
+        WHERE 
+            o.created_at BETWEEN '2024-06-16 17:52:36.368747' AND '2024-09-14 17:52:36.368747'
+        GROUP BY 
+            c.id, c.name
+    )
+
     SELECT 
-        c.id AS category_id, 
-        c.name AS category_name, 
-        SUM(o.total_amount) AS total_sales
+        current.category_id,
+        current.category_name,
+        current.total_sales AS current_sales,
+        previous.total_sales AS previous_sales,
+        CASE 
+            WHEN previous.total_sales = 0 THEN NULL
+            ELSE ((current.total_sales - previous.total_sales) / previous.total_sales) * 100
+        END AS sales_growth_percentage
     FROM 
-        orders o
-    JOIN 
-        groups_carts gc ON o.groups_carts_id = gc.id
-    JOIN 
-        group_cart_variations gcv ON gc.id = gcv.group_cart_id
-    JOIN 
-        products p ON gcv.product_variation_id = p.id
-    JOIN 
-        product_names pn ON p.name_id = pn.id
-    JOIN 
-        categories c ON pn.category_id = c.id
-    WHERE 
-        o.created_at >= %s AND o.created_at < %s
-    GROUP BY 
-        c.id, c.name;
+        (SELECT category_id, category_name, total_sales 
+         FROM sales_data 
+         WHERE period = 'Current Period') AS current
+    LEFT JOIN 
+        (SELECT category_id, category_name, total_sales 
+         FROM sales_data 
+         WHERE period = 'Previous Period') AS previous
+    ON current.category_id = previous.category_id
+    ORDER BY 
+        current.category_name;
     """
 
-    # SQL query to fetch sales data for the previous 90 days
-    sales_query_previous = """
-    SELECT 
-        c.id AS category_id, 
-        c.name AS category_name, 
-        SUM(o.total_amount) AS total_sales
-    FROM 
-        orders o
-    JOIN 
-        groups_carts gc ON o.groups_carts_id = gc.id
-    JOIN 
-        group_cart_variations gcv ON gc.id = gcv.group_cart_id
-    JOIN 
-        products p ON gcv.product_variation_id = p.id
-    JOIN 
-        product_names pn ON p.name_id = pn.id
-    JOIN 
-        categories c ON pn.category_id = c.id
-    WHERE 
-        o.created_at >= %s AND o.created_at < %s
-    GROUP BY 
-        c.id, c.name;
-    """
-
-    # Execute queries
-    cursor.execute(sales_query_current, (current_start_date, current_end_date))
-    current_sales = cursor.fetchall()
-    print(f"Current sales results: {current_sales}")  # Debugging output
-
-    cursor.execute(sales_query_previous,
-                   (previous_start_date, previous_end_date))
-    previous_sales = cursor.fetchall()
-    print(f"Previous sales results: {previous_sales}")  # Debugging output
-
-    # Process results
-    # {category_id: (name, total_sales)}
-    current_sales_dict = {row[0]: (row[1], row[2]) for row in current_sales}
-    # {category_id: (name, total_sales)}
-    previous_sales_dict = {row[0]: (row[1], row[2]) for row in previous_sales}
-
-    # Calculate growth percentage
-    growth_results = []
-    for category_id, (name, current_total) in current_sales_dict.items():
-        previous_total = previous_sales_dict.get(category_id, (name, 0))[1]
-        growth_percentage = ((current_total - previous_total) /
-                             previous_total * 100) if previous_total > 0 else float('inf')
-        growth_results.append(
-            (name, current_total, previous_total, growth_percentage))
+    # Execute the query
+    cursor.execute(sales_growth_query)
+    results = cursor.fetchall()
 
     # Close the database connection
     cursor.close()
     conn.close()
 
-    return growth_results
+    return results
 
 
 def write_results_to_csv(results, filename='sales_growth_results.csv'):
@@ -106,8 +111,8 @@ def write_results_to_csv(results, filename='sales_growth_results.csv'):
     with open(filename, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         # Write the header
-        writer.writerow(['Category Name', 'Current Sales',
-                        'Previous Sales', 'Growth Percentage'])
+        writer.writerow(['Category ID', 'Category Name',
+                        'Current Sales', 'Previous Sales', 'Growth Percentage'])
         # Write the data
         for row in results:
             writer.writerow(row)
@@ -124,7 +129,7 @@ db_params = {
 
 # Example usage
 if __name__ == "__main__":
-    results = calculate_sales_growth(db_params)
+    results = calculate_sales_growth_with_query(db_params)
     if results:
         write_results_to_csv(results)
         print(f"Results written to 'sales_growth_results.csv'")
