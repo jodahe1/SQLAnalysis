@@ -56,15 +56,25 @@ def load_data():
 def load_cleaned_data(file_path="orders_cleaned.csv"):
     return pd.read_csv(file_path)
 
+# Function to detect anomalies
+
+
+def detect_anomalies(data):
+    # Simple anomaly detection: using Z-score
+    threshold = 3
+    data['z_score'] = (data['total_amount'] -
+                       data['total_amount'].mean()) / data['total_amount'].std()
+    anomalies = data[data['z_score'].abs() > threshold]
+    return anomalies
+
 
 # Set up the Streamlit app
 st.set_page_config(page_title="Multi-Tab Dashboard", layout="wide")
 
-# Drawer for navigation
-with st.sidebar:
-    st.title("Navigation")
-    page = st.radio("Select a page:", [
-                    "Home", "Dynamic Heatmap", "Order Trends Forecasting"])
+# Navigation sidebar
+st.sidebar.title("Navigation")
+page = st.sidebar.radio("Select a page:", [
+                        "Home", "Dynamic Heatmap", "Order Trends Forecasting", "Anomaly Detection"])
 
 # Home Page
 if page == "Home":
@@ -74,6 +84,7 @@ if page == "Home":
         Use the navigation on the left to explore different sections of the dashboard.
         - **Dynamic Heatmap**: Visualize order contributions across categories and vendors.
         - **Order Trends Forecasting**: Forecast future order trends using the ARIMA model.
+        - **Anomaly Detection**: Identify and visualize anomalies in the order data.
     """)
     st.image("https://via.placeholder.com/800x300.png?text=Dashboard+Overview")  # Placeholder for an image
 
@@ -236,3 +247,40 @@ elif page == "Order Trends Forecasting":
 
         except Exception as e:
             st.error(f"ARIMA Model fitting failed: {e}")
+
+# Anomaly Detection Tab
+elif page == "Anomaly Detection":
+    st.header("Anomaly Detection in Order Data")
+
+    # Load the cleaned data
+    orders = load_cleaned_data()
+
+    # Detect anomalies
+    if not orders.empty:
+        anomalies = detect_anomalies(orders)
+
+        # Plotting the time series with anomalies
+        plt.figure(figsize=(14, 7))
+        plt.plot(orders['date'], orders['total_amount'],
+                 label='Total Amount', color='blue')
+
+        # Highlight anomalies
+        if not anomalies.empty:
+            plt.scatter(anomalies['date'], anomalies['total_amount'],
+                        color='red', label='Anomalies', zorder=5)
+            for i in range(len(anomalies)):
+                plt.annotate(f'Anomaly: {anomalies["total_amount"].iloc[i]:.2f}',
+                             (anomalies['date'].iloc[i],
+                              anomalies['total_amount'].iloc[i]),
+                             textcoords="offset points",
+                             xytext=(0, 10),
+                             ha='center', fontsize=8, color='red')
+
+        plt.title("Time Series Data with Anomaly Detection")
+        plt.xlabel("Date")
+        plt.ylabel("Total Amount")
+        plt.legend()
+        st.pyplot(plt)
+
+    else:
+        st.warning("No data available for anomaly detection.")
