@@ -60,12 +60,24 @@ def load_cleaned_data(file_path="orders_cleaned.csv"):
 # Set up the Streamlit app
 st.set_page_config(page_title="Multi-Tab Dashboard", layout="wide")
 
-# Create tabs
-st.title("Multi-Tab Dashboard")
-tab1, tab2 = st.tabs(["Dynamic Heatmap", "Order Trends Forecasting"])
+# Sidebar for navigation
+st.sidebar.title("Navigation")
+page = st.sidebar.radio(
+    "Select a page:", ["Home", "Dynamic Heatmap", "Order Trends Forecasting"])
 
-# Tab 1: Dynamic Heatmap
-with tab1:
+# Home Page
+if page == "Home":
+    st.title("Welcome to the Multi-Tab Dashboard")
+    st.write("""
+        This dashboard provides insights into order data through various visualizations.
+        Use the navigation on the left to explore different sections of the dashboard.
+        - **Dynamic Heatmap**: Visualize order contributions across categories and vendors.
+        - **Order Trends Forecasting**: Forecast future order trends using the ARIMA model.
+    """)
+    st.image("https://via.placeholder.com/800x300.png?text=Dashboard+Overview")  # Placeholder for an image
+
+# Dynamic Heatmap Tab
+elif page == "Dynamic Heatmap":
     st.header("Dynamic Heatmap Dashboard")
 
     # Layout with filters on the left
@@ -138,8 +150,8 @@ with tab1:
         else:
             st.error("No data available to display.")
 
-# Tab 2: Order Trends Forecasting
-with tab2:
+# Order Trends Forecasting Tab
+elif page == "Order Trends Forecasting":
     st.header("Order Trends Forecasting (ARIMA)")
 
     # Layout with filters on the left
