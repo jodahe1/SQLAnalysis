@@ -60,10 +60,11 @@ def load_cleaned_data(file_path="orders_cleaned.csv"):
 # Set up the Streamlit app
 st.set_page_config(page_title="Multi-Tab Dashboard", layout="wide")
 
-# Sidebar for navigation
-st.sidebar.title("Navigation")
-page = st.sidebar.radio(
-    "Select a page:", ["Home", "Dynamic Heatmap", "Order Trends Forecasting"])
+# Drawer for navigation
+with st.sidebar:
+    st.title("Navigation")
+    page = st.radio("Select a page:", [
+                    "Home", "Dynamic Heatmap", "Order Trends Forecasting"])
 
 # Home Page
 if page == "Home":
