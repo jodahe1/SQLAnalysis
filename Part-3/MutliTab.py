@@ -60,7 +60,6 @@ def load_cleaned_data(file_path="orders_cleaned.csv"):
 
 
 def detect_anomalies(data):
-    # Simple anomaly detection: using Z-score
     threshold = 3
     data['z_score'] = (data['total_amount'] -
                        data['total_amount'].mean()) / data['total_amount'].std()
@@ -128,19 +127,13 @@ elif page == "Dynamic Heatmap":
 
                 # Heatmap customization options
                 color_palette = st.selectbox("Select Color Palette", options=[
-                    'YlGnBu', 'coolwarm', 'viridis', 'plasma'], index=0)
+                                             'YlGnBu', 'coolwarm', 'viridis', 'plasma'], index=0)
                 annot_option = st.checkbox("Show Annotations", value=True)
 
                 # Create a heatmap
                 plt.figure(figsize=(14, 10))
-                sns.heatmap(
-                    pivot_table,
-                    annot=annot_option,
-                    fmt=".1f",
-                    cmap=color_palette,
-                    linewidths=0.5,
-                    cbar_kws={'label': 'Order Contribution'}
-                )
+                sns.heatmap(pivot_table, annot=annot_option, fmt=".1f", cmap=color_palette,
+                            linewidths=0.5, cbar_kws={'label': 'Order Contribution'})
                 plt.title(
                     "Heatmap of Order Contributions by Product Categories and Vendors", fontsize=16)
                 plt.xlabel("Vendor Phone", fontsize=12)
@@ -149,14 +142,29 @@ elif page == "Dynamic Heatmap":
                 # Display the heatmap in Streamlit
                 st.pyplot(plt)
 
+                # Drill-Down Feature
+                st.write("Click on any heatmap cell to see detailed data.")
+                selected_category = st.selectbox(
+                    "Select a Category", options=pivot_table.index)
+                selected_vendor = st.selectbox(
+                    "Select a Vendor", options=pivot_table.columns)
+
+                # Filter and display detailed data based on selections
+                if selected_category and selected_vendor:
+                    detailed_data = filtered_data[(filtered_data['category_name'] == selected_category) & (
+                        filtered_data['vendor_phone'] == selected_vendor)]
+                    if not detailed_data.empty:
+                        st.subheader(
+                            f"Detailed Data for {selected_category} - {selected_vendor}")
+                        st.write(detailed_data)
+                    else:
+                        st.warning(
+                            "No detailed data available for the selected category and vendor.")
+
                 # Download option for filtered data
                 csv = filtered_data.to_csv(index=False)
-                st.download_button(
-                    label="Download Filtered Data as CSV",
-                    data=csv,
-                    file_name="filtered_data.csv",
-                    mime="text/csv"
-                )
+                st.download_button(label="Download Filtered Data as CSV",
+                                   data=csv, file_name="filtered_data.csv", mime="text/csv")
             else:
                 st.warning("No data available for the selected filters.")
         else:
@@ -244,6 +252,17 @@ elif page == "Order Trends Forecasting":
             ax.set_ylabel("Total Amount")
             ax.legend()
             st.pyplot(fig)
+
+            # Drill-Down Feature
+            selected_date = st.selectbox(
+                "Select a Date to See Details", options=orders.index.date)
+            if selected_date:
+                detailed_orders = orders[orders.index.date == selected_date]
+                if not detailed_orders.empty:
+                    st.subheader(f"Detailed Orders for {selected_date}")
+                    st.write(detailed_orders)
+                else:
+                    st.warning("No orders available for the selected date.")
 
         except Exception as e:
             st.error(f"ARIMA Model fitting failed: {e}")
