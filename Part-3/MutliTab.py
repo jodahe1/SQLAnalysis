@@ -300,6 +300,5 @@ elif page == "Anomaly Detection":
         plt.ylabel("Total Amount")
         plt.legend()
         st.pyplot(plt)
-
     else:
         st.warning("No data available for anomaly detection.")
