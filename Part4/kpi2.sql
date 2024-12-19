@@ -1,3 +1,4 @@
+-- Customer Participation Rate in Group Deals
 SELECT 
     (SELECT COUNT(*) FROM public.users) AS total_users,
     (SELECT COUNT(DISTINCT user_id) FROM public.groups_carts) AS distinct_users_in_cart,

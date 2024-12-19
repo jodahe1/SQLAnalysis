@@ -1,3 +1,7 @@
+-- Implement a clustering algorithm to segment users into different groups (e.g., 
+-- high-value customers, occasional buyers) and integrate the results into the 
+-- dashboard for targeted insights.
+
 WITH UserOrderStats AS (
     SELECT 
         gc.user_id,
@@ -31,4 +35,4 @@ FROM
     UserOrderStats uos,
     AverageStats avg
 ORDER BY 
-    uos.total_order_amount DESC;  -- Order by total amount in descending order
+    uos.total_order_amount DESC;  

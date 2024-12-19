@@ -1,3 +1,7 @@
+# Create a reusable Python class to preprocess and normalize data for all tables 
+# (e.g., handling NULLs, encoding categorical variables, aggregating timestamps 
+# to periods).
+
 import psycopg2
 import pandas as pd
 from sqlalchemy import create_engine, inspect, text

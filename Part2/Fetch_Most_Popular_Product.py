@@ -1,13 +1,16 @@
+#  Using Python, develop a function to dynamically fetch the most popular product
+# categories and calculate their sales growth percentage compared to the previous
+# period (weekly or monthly).
+
+
 import psycopg2
 import csv
 
 
 def calculate_sales_growth_with_query(db_params):
-    # Connect to the PostgreSQL database
     conn = psycopg2.connect(**db_params)
     cursor = conn.cursor()
 
-    # Define the SQL query using the provided query
     sales_growth_query = """
     WITH sales_data AS (
         SELECT 
@@ -95,11 +98,8 @@ def calculate_sales_growth_with_query(db_params):
         current.category_name;
     """
 
-    # Execute the query
     cursor.execute(sales_growth_query)
     results = cursor.fetchall()
-
-    # Close the database connection
     cursor.close()
     conn.close()
 
@@ -107,18 +107,17 @@ def calculate_sales_growth_with_query(db_params):
 
 
 def write_results_to_csv(results, filename='sales_growth_results.csv'):
-    # Write the results to a CSV file
+
     with open(filename, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
-        # Write the header
+
         writer.writerow(['Category ID', 'Category Name',
                         'Current Sales', 'Previous Sales', 'Growth Percentage'])
-        # Write the data
+
         for row in results:
             writer.writerow(row)
 
 
-# Database connection parameters
 db_params = {
     'dbname': 'SQLTEST',
     'user': 'postgres',
@@ -127,7 +126,7 @@ db_params = {
     'port': '5432',
 }
 
-# Example usage
+
 if __name__ == "__main__":
     results = calculate_sales_growth_with_query(db_params)
     if results:

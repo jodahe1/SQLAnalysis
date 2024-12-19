@@ -1,7 +1,0 @@
-streamlit
-pandas
-numpy
-seaborn
-matplotlib
-statsmodels
-psycopg2-binary

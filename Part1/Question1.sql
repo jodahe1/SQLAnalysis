@@ -1,3 +1,7 @@
+-- Write a SQL query to fetch the top 10 users who contributed the highest revenue 
+--within the last 30 days, along with the number of groups they participated in and 
+--the categories of products they purchased.
+
 WITH UserRevenue AS (
     SELECT 
         gc.user_id,

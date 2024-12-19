@@ -1,10 +1,13 @@
+-- Generate a query to calculate the conversion rate for group deals, defined as the 
+-- ratio of completed orders (status = 'completed') to all group deals created.
+
 WITH CompletedOrders AS (
     SELECT 
         COUNT(*) AS completed_order_count
     FROM 
         orders
     WHERE 
-        status = 'COMPLETED'  -- Use the correct status value here
+        status = 'COMPLETED' 
 ),
 TotalGroupDeals AS (
     SELECT 

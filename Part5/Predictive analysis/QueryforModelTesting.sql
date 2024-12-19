@@ -1,3 +1,9 @@
+-- Use machine learning to predict which products are most likely to sell out within 
+-- the next week based on historical order data. Provide an outline of the model 
+-- architecture and features you would use.
+
+
+
 WITH last_order_date AS (
     SELECT 
         MAX(created_at) AS max_date
