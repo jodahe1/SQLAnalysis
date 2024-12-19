@@ -1,11 +1,10 @@
 import streamlit as st
 import pandas as pd
-from sqlalchemy import create_engine
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 import numpy as np
 
-
+# Set up page configurations
 st.set_page_config(
     page_title="User Clustering Dashboard",
     layout="wide"
@@ -15,43 +14,34 @@ pages = ["Home", "Clustering Dashboard", "Orders Overview",
          "Vendor Performance", "Trend Analysis"]
 page = st.sidebar.radio("Navigate", pages)
 
-st.sidebar.header("Database Connection")
-db_url = st.sidebar.text_input(
-    "Database URL", "postgresql+psycopg2://postgres:Admin@localhost:5432/SQLTEST")
+# Load data from CSV files
 
 
 @st.cache_data
-def fetch_data():
-    engine = create_engine(db_url)
-    query = """
-    WITH UserOrderStats AS (
-        SELECT 
-            gc.user_id,
-            COUNT(o.id) AS order_count,
-            SUM(o.total_amount) AS total_order_amount
-        FROM 
-            public.orders o
-        JOIN 
-            public.groups_carts gc ON o.groups_carts_id = gc.id
-        GROUP BY 
-            gc.user_id
+def load_data():
+    groups_carts = pd.read_csv('groups_carts.csv')
+    orders = pd.read_csv('orders.csv')
+    return groups_carts, orders
+
+
+groups_carts, orders = load_data()
+
+# Process data to create user order stats
+
+
+@st.cache_data
+def create_user_order_stats(groups_carts, orders):
+    user_order_stats = (
+        groups_carts.merge(orders, left_on='id',
+                           right_on='groups_carts_id', how='inner')
+        .groupby('user_id')
+        .agg(order_count=('id_y', 'count'), total_order_amount=('total_amount', 'sum'))
+        .reset_index()
     )
-    SELECT 
-        user_id, 
-        order_count, 
-        total_order_amount
-    FROM 
-        UserOrderStats;
-    """
-    return pd.read_sql(query, engine)
+    return user_order_stats
 
 
-try:
-    data = fetch_data()
-    st.sidebar.success("Data fetched successfully!")
-except Exception as e:
-    st.sidebar.error(f"Error connecting to the database: {e}")
-    st.stop()
+data = create_user_order_stats(groups_carts, orders)
 
 data = data.dropna().drop_duplicates()
 
@@ -132,22 +122,6 @@ elif page == "Clustering Dashboard":
     ax.legend()
     st.pyplot(fig)
 
-    if st.sidebar.button("Save Clustering Results"):
-        engine = create_engine(db_url)
-        data[['user_id', 'cluster']].to_sql(
-            'user_clusters', engine, if_exists='replace', index=False)
-        st.sidebar.success("Clustering results saved to database!")
-
-    st.sidebar.header("Download Results")
-
-    @st.cache_data
-    def convert_df_to_csv(df):
-        return df.to_csv(index=False).encode('utf-8')
-
-    csv_data = convert_df_to_csv(data)
-    st.sidebar.download_button(label="Download CSV", data=csv_data,
-                               file_name="user_clusters.csv", mime="text/csv")
-
 elif page == "Orders Overview":
     st.title("Orders Overview")
     st.write("Get a quick overview of all orders.")
@@ -189,7 +163,7 @@ elif page == "Trend Analysis":
     st.title("Trend Analysis")
     st.write("Visualize trends in order amounts over time.")
 
-    
+    # Simulating time series data
     time_series_data = pd.DataFrame({
         'date': pd.date_range(start='2023-01-01', periods=100),
         'total_amount': (1000 * np.random.rand(100)).cumsum()
